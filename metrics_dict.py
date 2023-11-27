@@ -2,7 +2,7 @@ import pprint
 import pandas as pd
 
 metrics = {
-        'net_ord_gms': 'Net Ordered GMS',
+        'threep_net_ord_gms': 'Net Ordered GMS',
         'fba_net_ord_gms': 'FBA Net Ordered GMS',
         'mfn_net_ord_gms': 'MFN Net Ordered GMS',
         'net_ord_units': 'Net Ordered Units',
