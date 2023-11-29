@@ -60,14 +60,13 @@ job_var.value = ws_metdata[f"{find_cell_by_value(ws_metdata, 'JOB_ID', 1)}"].val
 
 # Create Raw Sheet
 
-
 prefix_gms_metrics = []
 for i in report_attributes.time_prefix:
     for metrics in report_attributes.gms_perf_metrics:
         metric_w_prefix = (str(i) + '_' + str(metrics))
         prefix_gms_metrics.append(metric_w_prefix)
 
-ws_raw_columns = report_attributes.date_dimension + report_attributes.seller_origin_dimension + prefix_gms_metrics
+ws_raw_columns = report_attributes.date_dimension + report_attributes.region_dimension + report_attributes.seller_origin_dimension + prefix_gms_metrics
 
 for idx, c in enumerate(ws_raw_columns, start=1):
     ws_raw.cell(1, idx).value = c
@@ -100,10 +99,8 @@ trailing_week = 5
 
 # Row 11 -> Set up the metrics
 for row, (met, regions) in enumerate(metric.ww_group_by_region.items()):
-    print(met)
     for i, region in zip(range(12+row*len(regions), 12 + (row+1)*len(regions) + row), regions):
-        print(i, region)
-        ws_main.cell(i, 1).value = met
+        ws_main.cell(i, 1).value = 'wtd_' + met
         ws_main.cell(i, 2).value = region
 
 # Set up the time array
@@ -122,7 +119,11 @@ for index, column in enumerate(range(10, 10+trailing_week+1)):
     ws_main.cell(4, column).value = f'=YEAR({ws_main.cell(2, column).coordinate})'
     ws_main.cell(10, column).value = f'="Wk"&{ws_main.cell(3, column).coordinate}&"-"&RIGHT({ws_main.cell(4, column).coordinate},2)'
 
-    ws_main.cell(12, column).value = f'="SUMIFS({})'
+
+for idx, row in enumerate(ws_main.iter_rows(min_col=1, max_col=3, min_row=12),start=12):
+    print(idx, row)
+    for col in range(10, 10+trailing_week+1):
+        ws_main.cell(idx, col).value = f'=SUMIFS({row[0].value},activity_year,{ws_main.cell(4, col).coordinate},activity_week,{ws_main.cell(3, col).coordinate},region,"{row[1].value}")'
 
 wb.save("main.xlsx")
 subprocess.check_call(['open', '-a', 'Microsoft Excel', './main.xlsx'])
