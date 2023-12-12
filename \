@@ -41,8 +41,10 @@ def fill_time_grid(sheet_name, time_cell, time_type, time_parameter):
             range(start_point, start_point + time_parameter + 1)
             ):
         if time_type.lower() == 'week':
-            format_cell(sheet_name.cell(10, start_point-1))
-            f'={sheet_name.cell(1, column).coordinate}+{time_cell.coordinate}'
+            sheet_name.cell(1, column).value = 7*(index-time_parameter)
+
+            sheet_name.cell(2, column).value = \
+                    f'={sheet_name.cell(1, column).coordinate}+{time_cell.coordinate}'
             sheet_name.cell(2, column).style = yyyymmdd
 
             sheet_name.cell(3, column).value = \
@@ -61,7 +63,7 @@ def fill_time_grid(sheet_name, time_cell, time_type, time_parameter):
                     f'="Wk"&{sheet_name.cell(3, column).coordinate}\
                     &"-"&\
                     RIGHT({sheet_name.cell(6, column).coordinate},2)'
-            format_cell(sheet_name.cell(10, column), bold=True, fill='000000', alignment='right')
+            format_cell(sheet_name.cell(10, column), white_bold_font, black_background_fill, right_aligned, square_border)
 
         elif time_type.lower() == 'month':
             sheet_name.cell(1, column).value = 1*(index - time_parameter)
@@ -81,26 +83,18 @@ def fill_time_grid(sheet_name, time_cell, time_type, time_parameter):
             sheet_name.cell(10, column).value = \
                     f'=TEXT({sheet_name.cell(4, column).coordinate}*28, "mmm")\
                     &"-"&RIGHT({sheet_name.cell(6, column).coordinate},2)'
-            format_cell(sheet_name.cell(10, column), bold=True, fill='000000', alignment='right')
+            format_cell(sheet_name.cell(10, column), white_bold_font, black_background_fill, right_aligned, square_border)
 
     return None
 
 
-def format_cell(cell,
-                font_size=14,
-                bold=False,
-                fill='FFFFFF',
-                alignment='left',
-                border=openpyxl.styles.Border()
-                ):
-    cell.font = openpyxl.styles.Font(size=font_size, bold=bold)
-    cell.fill = openpyxl.styles.PatternFill(start_color=fill,
-                                           end_color=fill,
-                                           fill_type="solid")
-    cell.alignment = openpyxl.styles.Alignment(horizontal=alignment)
+def format_cell(cell, font, fill, alignment, border):
+    cell.font = font
+    cell.fill = fill
+    cell.alignment = alignment
     cell.border = border
     return None
- 
+
 
 """ * * * * * * * * * * * * * *
 
@@ -115,7 +109,6 @@ yyyymmdd = openpyxl.styles.NamedStyle(name='standardise_date',
 
 white_bold_font = openpyxl.styles.Font(color="FFFFFF", bold=True)
 bold_font = openpyxl.styles.Font(bold=True)
-title_font = openpyxl.styles.Font(bold=True, size=20)
 
 grey_background_fill = openpyxl.styles.PatternFill(start_color="D3D3D3",
                                                    end_color="D3D3D3",
@@ -178,8 +171,6 @@ ws_main['$B$5'].value = 'activity_quarter'
 ws_main['$B$6'].value = 'activity_year'
 ws_main['$A$3'].value = find_cell_by_value(ws_metadata, 'FREE_FORM', 1)
 ws_main['$A$4'].value = find_cell_by_value(ws_metadata, 'JOB_ID', 1)
-ws_main['$I$8'].value = 'REPORTING NAME HERE'
-ws_main['$I$8'].font = title_font
 
 
 # Loading the metadata from the script
@@ -267,7 +258,7 @@ for row, (met, regions) in enumerate(hierarchy.items()):
 
 # Filling the formula
 
-for idx, row in enumerate(ws_main.iter_rows(min_col=1, max_col=3, min_row=11), start=11):
+for idx, row in enumerate(ws_main.iter_rows(min_col=1, max_col=3, min_row=12), start=12):
     for col in range(10, 10+trailing_week+1):
         ws_main.cell(idx, col).value = f'=SUMIFS(\
                 INDIRECT(${row[0].coordinate}),\
