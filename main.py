@@ -36,13 +36,15 @@ def fill_time_grid(sheet_name, time_cell, time_type, time_parameter):
         time_type: generating series by week|month|quarter|year
         time_parameter: number of trailing week/month/quarter/year
     """
-    start_point = max(10, sheet_name.max_column+1)
+    start_point = max(10, sheet_name.max_column + 1)
     for index, column in enumerate(
-            range(start_point, start_point + time_parameter + 1)
+            range(start_point, start_point + time_parameter)
             ):
         if time_type.lower() == 'week':
-            format_cell(sheet_name.cell(10, start_point-1))
-            f'={sheet_name.cell(1, column).coordinate}+{time_cell.coordinate}'
+            sheet_name.cell(1, column).value = 7*(index - time_parameter)
+            sheet_name.cell(2, column).value = \
+                    f'={sheet_name.cell(1, column).coordinate}\
+                    +{time_cell.coordinate}'
             sheet_name.cell(2, column).style = yyyymmdd
 
             sheet_name.cell(3, column).value = \
@@ -61,7 +63,7 @@ def fill_time_grid(sheet_name, time_cell, time_type, time_parameter):
                     f'="Wk"&{sheet_name.cell(3, column).coordinate}\
                     &"-"&\
                     RIGHT({sheet_name.cell(6, column).coordinate},2)'
-            format_cell(sheet_name.cell(10, column), bold=True, fill='000000', alignment='right')
+            format_cell(sheet_name.cell(10, column), bold=True, colour='FFFFFF', fill='000000', alignment='right')
 
         elif time_type.lower() == 'month':
             sheet_name.cell(1, column).value = 1*(index - time_parameter)
@@ -81,26 +83,62 @@ def fill_time_grid(sheet_name, time_cell, time_type, time_parameter):
             sheet_name.cell(10, column).value = \
                     f'=TEXT({sheet_name.cell(4, column).coordinate}*28, "mmm")\
                     &"-"&RIGHT({sheet_name.cell(6, column).coordinate},2)'
-            format_cell(sheet_name.cell(10, column), bold=True, fill='000000', alignment='right')
+            format_cell(sheet_name.cell(10, column), bold=True, colour='FFFFFF', fill='000000', alignment='right')
 
+        elif time_type.lower() == 'quarter':
+            sheet_name.cell(1, column).value = 1*(index - time_parameter)
+
+            sheet_name.cell(2, column).value = \
+                    f'=_xlfn.EOMONTH({time_cell.coordinate},\
+                    {sheet_name.cell(1, column).coordinate})'
+            sheet_name.cell(2, column).style = yyyymmdd
+
+            sheet_name.cell(4, column).value = \
+                    f'=_xlfn.MONTH({sheet_name.cell(2, column).coordinate})'
+
+            sheet_name.cell(5, column).value = f'=_xlfn.ROUNDUP({sheet_name.cell(4, column).coordinate}/3,0)'
+
+            sheet_name.cell(6, column).value = f'=YEAR({sheet_name.cell(2, column).coordinate})'
+
+            sheet_name.cell(10, column).value = \
+                    f'=TEXT({sheet_name.cell(4, column).coordinate}*28, "mmm")\
+                    &"-"&RIGHT({sheet_name.cell(6, column).coordinate},2)'
+            format_cell(sheet_name.cell(10, column), bold=True, colour='FFFFFF', fill='000000', alignment='right')
+
+        elif time_type.lower() == 'year':
+            sheet_name.cell(1, column).value = 1*(index - time_parameter)
+
+            sheet_name.cell(2, column).value = \
+                    f'=_xlfn.EOMONTH({time_cell.coordinate},\
+                    {sheet_name.cell(1, column).coordinate})'
+            sheet_name.cell(2, column).style = yyyymmdd
+
+            sheet_name.cell(4, column).value = \
+                    f'=_xlfn.MONTH({sheet_name.cell(2, column).coordinate})'
+
+            sheet_name.cell(5, column).value = f'=_xlfn.ROUNDUP({sheet_name.cell(4, column).coordinate}/3,0)'
+
+            sheet_name.cell(6, column).value = f'=YEAR({sheet_name.cell(2, column).coordinate})'
+
+            sheet_name.cell(10, column).value = \
+                    f'=TEXT({sheet_name.cell(4, column).coordinate}*28, "mmm")\
+                    &"-"&RIGHT({sheet_name.cell(6, column).coordinate},2)'
+            format_cell(sheet_name.cell(10, column), bold=True, colour='FFFFFF', fill='000000', alignment='right')
     return None
 
 
-def format_cell(cell,
-                font_size=14,
-                bold=False,
-                fill='FFFFFF',
-                alignment='left',
-                border=openpyxl.styles.Border()
-                ):
-    cell.font = openpyxl.styles.Font(size=font_size, bold=bold)
-    cell.fill = openpyxl.styles.PatternFill(start_color=fill,
-                                           end_color=fill,
-                                           fill_type="solid")
+def format_cell(cell, font_size=11, colour='000000', bold=False,
+                fill=None, alignment='left', border=openpyxl.styles.Border()):
+    cell.font = openpyxl.styles.Font(size=font_size, bold=bold, color=colour)
+    cell.fill = (openpyxl.styles.PatternFill(fill_type=None) if fill is None
+                 else openpyxl.styles.PatternFill(start_color=fill,
+                                                  end_color=fill,
+                                                  fill_type="solid")
+                 )
     cell.alignment = openpyxl.styles.Alignment(horizontal=alignment)
     cell.border = border
     return None
- 
+
 
 """ * * * * * * * * * * * * * *
 
@@ -117,9 +155,6 @@ white_bold_font = openpyxl.styles.Font(color="FFFFFF", bold=True)
 bold_font = openpyxl.styles.Font(bold=True)
 title_font = openpyxl.styles.Font(bold=True, size=20)
 
-grey_background_fill = openpyxl.styles.PatternFill(start_color="D3D3D3",
-                                                   end_color="D3D3D3",
-                                                   fill_type="solid")
 black_background_fill = openpyxl.styles.PatternFill(start_color="000000",
                                                     end_color="000000",
                                                     fill_type="solid")
@@ -172,35 +207,21 @@ trailing_year = 1
 ws_main['$A$1'].value = 'REPORTING NAME HERE'
 ws_main['$A$2'].value = find_cell_by_value(ws_metadata, 'RUN_DATE', 1)
 ws_main['$B$2'].value = 'date'
-ws_main['$B$3'].value = 'activity_week'
-ws_main['$B$4'].value = 'activity_month'
-ws_main['$B$5'].value = 'activity_quarter'
-ws_main['$B$6'].value = 'activity_year'
 ws_main['$A$3'].value = find_cell_by_value(ws_metadata, 'FREE_FORM', 1)
 ws_main['$A$4'].value = find_cell_by_value(ws_metadata, 'JOB_ID', 1)
+ws_main['$I3'].value = 'activity_week'
+ws_main['$I4'].value = 'activity_month'
+ws_main['$I5'].value = 'activity_quarter'
+ws_main['$I6'].value = 'activity_year'
 ws_main['$I$8'].value = 'REPORTING NAME HERE'
-ws_main['$I$8'].font = title_font
-
-
-# Loading the metadata from the script
-
-# set the position of metadata in Main Sheet
-# A2 -> Time, A3 -> Country, A4 -> job_metadata
-# B2 -> Date, B3 -> week, B4 -> month, B4 -> Quarter, B5 -> Year
-
-ws_main['$A$2'].value = find_cell_by_value(ws_metadata, 'RUN_DATE', 1)
-ws_main['$B$2'].value = 'date'
-ws_main['$B$3'].value = 'activity_week'
-ws_main['$B$4'].value = 'activity_month'
-ws_main['$B$5'].value = 'activity_quarter'
-ws_main['$B$6'].value = 'activity_year'
-ws_main['$A$3'].value = find_cell_by_value(ws_metadata, 'FREE_FORM', 1)
-ws_main['$A$4'].value = find_cell_by_value(ws_metadata, 'JOB_ID', 1)
+format_cell(ws_main['$I$8'], font_size=18, bold=True, alignment='left')
 
 
 # Set up the time array
 fill_time_grid(ws_main, ws_main['$A$2'], 'week', trailing_week)
 fill_time_grid(ws_main, ws_main['$A$2'], 'month', trailing_month)
+fill_time_grid(ws_main, ws_main['$A$2'], 'quarter', trailing_quarter)
+fill_time_grid(ws_main, ws_main['$A$2'], 'year', trailing_year)
 
 
 # Create Defined Names for metrics in SUMIFS
@@ -258,11 +279,10 @@ for row, (met, regions) in enumerate(hierarchy.items()):
         ws_main.cell(i, 2).value = region
         if region == 'AGG':
             ws_main.cell(i, 9).value = metrics_dict.metric_mapping[met]
-            ws_main.cell(i, 9).font = bold_font
-            ws_main.cell(i, 9).fill = grey_background_fill
+            format_cell(ws_main.cell(i, 9), bold=True, fill='D3D3D3')
         else:
             ws_main.cell(i, 9).value = region
-            ws_main.cell(i, 9).alignment = indent_aligned
+            format_cell(ws_main.cell(i, 9), alignment='center')
 
 
 # Filling the formula
@@ -276,7 +296,7 @@ for idx, row in enumerate(ws_main.iter_rows(min_col=1, max_col=3, min_row=11), s
                 region,${row[1].coordinate})'
 
         if ws_main.cell(idx, 9).value in metrics_dict.metric_mapping.values():
-            ws_main.cell(idx, col).fill = grey_background_fill
+            format_cell(ws_main.cell(idx, col), bold=True, fill='D3D3D3', alignment='right')
 
     for col in range(10+trailing_week + 1, 10 + trailing_week + 1 + trailing_month + 1):
         ws_main.cell(idx, col).value = f'=SUMIFS(\
@@ -285,7 +305,7 @@ for idx, row in enumerate(ws_main.iter_rows(min_col=1, max_col=3, min_row=11), s
                 activity_month,{ws_main.cell(4, col).coordinate},\
                 region,${row[1].coordinate})'
         if ws_main.cell(idx, 9).value in metrics_dict.metric_mapping.values():
-            ws_main.cell(idx, col).fill = grey_background_fill
+            format_cell(ws_main.cell(idx, col), bold=True, fill='D3D3D3', alignment='right')
 
 
 wb.save("main.xlsx")
